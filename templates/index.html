@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DODODO</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <h1>DODODO</h1>
+  <nav>
+    <button class="nav-btn active" id="nav-draw"    onclick="showView('draw')">Draw</button>
+    <button class="nav-btn"        id="nav-manage"  onclick="showView('manage')">Manage Pool</button>
+    <button class="nav-btn"        id="nav-history" onclick="showView('history')">History</button>
+  </nav>
+</header>
+
+<!-- ── Draw view ──────────────────────────────────────────────────────────── -->
+<main id="view-draw" class="view">
+  <div class="status-badge" id="pool-status">Loading…</div>
+
+  <button class="draw-btn" id="draw-btn" onclick="drawMission()">
+    <span class="draw-icon">🎲</span>
+    DRAW
+  </button>
+
+  <div class="mission-card hidden" id="mission-card">
+    <div class="mission-breadcrumb" id="mission-breadcrumb"></div>
+    <div class="mission-leaf" id="mission-leaf"></div>
+    <div class="mission-progress hidden" id="mission-progress"></div>
+    <div class="mission-notes hidden" id="mission-notes"></div>
+    <div class="mission-actions">
+      <button class="btn-accept" onclick="acceptMission()">✓ Accept</button>
+      <button class="btn-skip"   onclick="skipMission()">→ Skip</button>
+    </div>
+  </div>
+</main>
+
+<!-- ── Manage view ────────────────────────────────────────────────────────── -->
+<main id="view-manage" class="view hidden">
+  <div class="manage-header">
+    <h2>Pool Manager</h2>
+    <button class="btn-add-root" onclick="openAddModal(null)">+ Add Item</button>
+  </div>
+
+  <div class="items-tree" id="items-tree">
+    <div class="tree-empty">Loading…</div>
+  </div>
+
+  <div class="manage-footer">
+    <button class="btn-reset" onclick="resetAll()">↺ Reset All States</button>
+  </div>
+</main>
+
+<!-- ── History view ───────────────────────────────────────────────────────── -->
+<main id="view-history" class="view hidden">
+  <div class="manage-header">
+    <h2>History</h2>
+    <button class="btn-clear-history" onclick="clearHistory()">Clear All</button>
+  </div>
+  <div id="history-list"></div>
+</main>
+
+<!-- ── Shared item modal (add & edit) ─────────────────────────────────────── -->
+<div id="item-modal" class="modal-backdrop hidden" onclick="closeItemModal(event)">
+  <div class="modal-card">
+    <h3 class="modal-title" id="modal-title">Edit Item</h3>
+
+    <label class="modal-label">Name</label>
+    <input id="modal-name" class="modal-input" type="text" placeholder="Name…">
+
+    <label class="modal-label">Notes <span class="modal-optional">(optional)</span></label>
+    <textarea id="modal-notes" class="modal-textarea" rows="3" placeholder="Any notes…"></textarea>
+
+    <label class="modal-label">Required Draws</label>
+    <div class="draw-count-picker" id="draw-count-picker">
+      <button class="dcp-btn active" data-val="1" onclick="selectDrawCount(1)">× 1</button>
+      <button class="dcp-btn"        data-val="2" onclick="selectDrawCount(2)">× 2</button>
+      <button class="dcp-btn"        data-val="3" onclick="selectDrawCount(3)">× 3</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeItemModal()">Cancel</button>
+      <button class="modal-save"   onclick="saveItemModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
