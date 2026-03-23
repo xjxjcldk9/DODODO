@@ -1,5 +1,7 @@
 /* ── State ───────────────────────────────────────────────────────────────── */
-let currentMission = null;
+let currentMission    = null;
+let currentRevealStep = 0;        // how many levels have been revealed so far
+const expandedItems   = new Set(); // item ids that are expanded in the tree
 
 /* ── View switching ──────────────────────────────────────────────────────── */
 
@@ -32,45 +34,77 @@ async function drawMission() {
   btn.disabled = true;
   btn.classList.add('spinning');
 
-  // Fetch result while animation plays
   const fetchPromise = apiFetch('/api/draw');
-  await sleep(1200); // let the animation run
+  await sleep(1200);
 
   const { mission } = await fetchPromise;
   btn.disabled = false;
   btn.classList.remove('spinning');
 
-  if (!mission) {
-    alert('No items in the pool yet!');
-    return;
-  }
-  currentMission = mission;
+  if (!mission) { alert('No items in the pool yet!'); return; }
 
-  const path = mission.path;
-  const leaf = path[path.length - 1];
-  const crumbs = path.slice(0, -1);
+  currentMission    = mission;
+  currentRevealStep = 0;
+  renderMissionCard();
+  document.getElementById('mission-card').classList.remove('hidden');
+  btn.classList.add('hidden');
+  refreshStatus();
+}
 
+function renderMissionCard() {
+  const path    = currentMission.path;
+  const step    = currentRevealStep;
+  const current = path[step];
+  const hasMore = step < path.length - 1;
+
+  // Breadcrumb (already-revealed ancestors)
   const bc = document.getElementById('mission-breadcrumb');
-  bc.innerHTML = crumbs.map(p => `<span>${esc(p.name)}</span><span class="sep">›</span>`).join('');
+  bc.innerHTML = path.slice(0, step)
+    .map(p => `<span>${esc(p.name)}</span><span class="sep">›</span>`).join('');
 
-  document.getElementById('mission-leaf').textContent = leaf.name;
+  // Current item name
+  document.getElementById('mission-leaf').textContent = current.name;
 
+  // Progress badge (only on final leaf for multi-draw items)
   const progressEl = document.getElementById('mission-progress');
-  if (leaf.required_count > 1) {
-    const done = leaf.draw_count || 0;
-    progressEl.textContent = `${done + 1} of ${leaf.required_count} completions`;
+  if (!hasMore && current.required_count > 1) {
+    progressEl.textContent = `${(current.draw_count || 0) + 1} of ${current.required_count} completions`;
     progressEl.classList.remove('hidden');
   } else {
     progressEl.classList.add('hidden');
   }
 
+  // Notes
   const notesEl = document.getElementById('mission-notes');
-  notesEl.textContent = leaf.notes || '';
-  notesEl.classList.toggle('hidden', !leaf.notes);
+  notesEl.textContent = current.notes || '';
+  notesEl.classList.toggle('hidden', !current.notes);
 
-  document.getElementById('mission-card').classList.remove('hidden');
-  btn.classList.add('hidden');
-  refreshStatus();
+  // Actions
+  const actionsEl = document.getElementById('mission-actions');
+  if (hasMore) {
+    actionsEl.innerHTML = `
+      <button class="btn-roll" id="roll-btn" onclick="rollNext()">
+        <span class="roll-icon">🎲</span> Roll subcategory
+      </button>
+      <button class="btn-skip" onclick="skipMission()">↩ Skip</button>`;
+  } else {
+    actionsEl.innerHTML = `
+      <button class="btn-accept" onclick="acceptMission()">✓ Accept</button>
+      <button class="btn-skip"   onclick="skipMission()">↩ Skip</button>`;
+  }
+}
+
+async function rollNext() {
+  const btn = document.getElementById('roll-btn');
+  btn.disabled = true;
+  btn.classList.add('spinning');
+  await sleep(1000);
+  currentRevealStep++;
+  // flash the leaf text
+  const leaf = document.getElementById('mission-leaf');
+  leaf.classList.add('leaf-reveal');
+  renderMissionCard();
+  setTimeout(() => leaf.classList.remove('leaf-reveal'), 400);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -84,12 +118,14 @@ async function acceptMission() {
 
 async function skipMission() {
   if (!currentMission) return;
-  await apiFetch('/api/skip', { method: 'POST', body: { path: currentMission.path } });
+  const revealedPath = currentMission.path.slice(0, currentRevealStep + 1);
+  await apiFetch('/api/skip', { method: 'POST', body: { path: revealedPath } });
   resetDrawArea();
 }
 
 function resetDrawArea() {
-  currentMission = null;
+  currentMission    = null;
+  currentRevealStep = 0;
   document.getElementById('mission-card').classList.add('hidden');
   document.getElementById('draw-btn').classList.remove('hidden');
 }
@@ -118,6 +154,20 @@ function buildUl(items, depth) {
   ul.className = `tree-ul depth-${depth}`;
   items.forEach(item => ul.appendChild(buildLi(item, depth)));
   return ul;
+}
+
+function toggleCollapse(itemId) {
+  if (expandedItems.has(itemId)) expandedItems.delete(itemId);
+  else expandedItems.add(itemId);
+
+  const li  = document.querySelector(`li[data-id="${itemId}"]`);
+  const ul  = li?.querySelector(':scope > ul');
+  const arr = li?.querySelector('.collapse-arrow');
+  if (!ul || !arr) return;
+
+  const expanded = expandedItems.has(itemId);
+  ul.classList.toggle('tree-collapsed', !expanded);
+  arr.textContent = expanded ? '▾' : '▸';
 }
 
 function buildLi(item, depth) {
@@ -187,7 +237,18 @@ function buildLi(item, depth) {
   li.appendChild(row);
 
   if (item.children && item.children.length) {
-    li.appendChild(buildUl(item.children, depth + 1));
+    // Collapse arrow — prepend to row
+    const arrow = document.createElement('button');
+    arrow.className = 'collapse-arrow';
+    const isExpanded = expandedItems.has(item.id);
+    arrow.textContent = isExpanded ? '▾' : '▸';
+    arrow.title = isExpanded ? 'Collapse' : 'Expand';
+    arrow.onclick = () => toggleCollapse(item.id);
+    row.prepend(arrow);
+
+    const childUl = buildUl(item.children, depth + 1);
+    if (!isExpanded) childUl.classList.add('tree-collapsed');
+    li.appendChild(childUl);
   }
 
   return li;

@@ -167,7 +167,7 @@ nav { display: flex; gap: 0.5rem; }
   white-space: pre-wrap;
 }
 
-.mission-actions { display: flex; gap: 0.75rem; justify-content: center; }
+.mission-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 
 .btn-accept {
   padding: 0.7rem 2rem;
@@ -194,6 +194,34 @@ nav { display: flex; gap: 0.5rem; }
   transition: all 0.15s;
 }
 .btn-skip:hover { border-color: var(--muted); color: var(--text); }
+
+/* Roll subcategory button */
+.btn-roll {
+  padding: 0.7rem 2rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.btn-roll:hover   { opacity: 0.9; box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4); }
+.btn-roll:disabled { cursor: default; opacity: 0.7; }
+.btn-roll .roll-icon { font-size: 1.1rem; }
+.btn-roll.spinning .roll-icon { animation: spinIcon 0.5s linear infinite; }
+
+/* Leaf reveal flash */
+@keyframes leafReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mission-leaf.leaf-reveal { animation: leafReveal 0.3s ease; }
 
 /* ── Manage view ─────────────────────────────────────────────────────────── */
 
@@ -258,6 +286,27 @@ ul.tree-ul.depth-2 { padding-left: 2rem; }
 .tree-row:hover { background: #f9fafb; }
 
 li:last-child > .tree-row { border-bottom: none; }
+
+/* Collapse arrow */
+.collapse-arrow {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
+}
+.collapse-arrow:hover { background: var(--border); color: var(--text); }
+
+ul.tree-ul.tree-collapsed { display: none; }
 
 /* iOS-style toggle switch */
 .toggle-switch {

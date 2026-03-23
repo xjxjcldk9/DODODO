@@ -40,12 +40,16 @@ def init_db():
             );
         """)
         # migrate existing DBs
-        for col, dflt in [("notes", "NULL"), ("required_count", "1")]:
-            try:
-                conn.execute(f"ALTER TABLE items ADD COLUMN {col} TEXT DEFAULT {dflt}")
-                conn.commit()
-            except sqlite3.OperationalError:
-                pass
+        try:
+            conn.execute("ALTER TABLE items ADD COLUMN notes TEXT")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE items ADD COLUMN required_count INTEGER NOT NULL DEFAULT 1")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
         try:
             conn.execute("ALTER TABLE item_states ADD COLUMN draw_count INTEGER NOT NULL DEFAULT 0")
             conn.commit()
@@ -159,7 +163,7 @@ def accept_mission(item_ids: list[int]):
             if not row:
                 continue
             new_count = row["draw_count"] + 1
-            consumed = 1 if new_count >= row["required_count"] else 0
+            consumed = 1 if new_count >= int(row["required_count"]) else 0
             conn.execute(
                 "UPDATE item_states SET draw_count = ?, consumed = ?, consumed_at = ? WHERE item_id = ?",
                 (new_count, consumed, now if consumed else None, iid),
@@ -258,7 +262,7 @@ def toggle_consumed(item_id: int) -> dict:
         if not row:
             return {"consumed": False}
         new_consumed = 0 if row["consumed"] else 1
-        new_draw_count = row["required_count"] if new_consumed else 0
+        new_draw_count = int(row["required_count"]) if new_consumed else 0
         conn.execute(
             "UPDATE item_states SET consumed = ?, draw_count = ?, consumed_at = ? WHERE item_id = ?",
             (new_consumed, new_draw_count, now if new_consumed else None, item_id),
